@@ -1,0 +1,29 @@
+{
+  "name": "bookshop",
+  "version": "1.0.0",
+  "description": "A simple CAP project.",
+  "repository": "<Add your repository here>",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-js/hana": "^2",
+    "@sap/cds": "^9",
+    "express": "^4"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "@cap-js/sqlite": "^2",
+    "@sap/cds-dk": "^9"
+  },
+  "scripts": {
+    "start": "cds w --profile hybrid",
+    "build": "cds build",
+    "deploy": "cds deploy --to hana --auto-undeploy"
+  },
+  "cds": {},
+  "allowScripts": {
+    "better-sqlite3": true
+  }
+}

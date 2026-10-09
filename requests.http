@@ -1,0 +1,89 @@
+@host = http://localhost:4004
+@service = {{host}}/odata/v4/catalog
+
+### Create Order with localized description, x3 times
+POST {{service}}/Orders
+Accept: application/json
+Accept-Language: de
+Content-Type: application/json
+
+{
+  "DESCRIPTION": "english",
+  "texts": [ { "DESCRIPTION": "german", "locale": "de"} ]
+}
+
+### Read all Orders with inline count, filtering by DESCRIPTION.
+# It works because the count is not requested from the database, I assume it's not necessary since you get less records than the LIMIT.
+
+# [sql] - BEGIN
+# [sql] - SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER ( ORDER BY ID ASC) as "$$RN$$" FROM (SELECT "$O".ID,"$O".DESCRIPTION FROM localized_ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ? ORDER BY "$O".ID ASC LIMIT 1000) as "$O") as "$O" [ 'german' ]
+# [sql] - WITH "$O" as (SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER ( ORDER BY ID ASC) as "$$RN$$" FROM (SELECT "$O".ID,"$O".DESCRIPTION FROM localized_ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ? ORDER BY "$O".ID ASC LIMIT 1000) as "$O") as "$O") SELECT _path_ as "_path_",'{}' as "_blobs_",'{}' as "_expands_",(SELECT ID as "ID",DESCRIPTION as "DESCRIPTION" FROM JSON_TABLE('{}', '$'COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" FROM "$O" ORDER BY "_path_" ASC
+# [sql] - COMMIT
+
+# HTTP/1.1 200 OK
+# X-Powered-By: Express
+# X-Correlation-ID: 4875d6e7-0b70-44b2-9f84-d05fbfdb6dfb
+# OData-Version: 4.0
+# Content-Type: application/json; charset=utf-8
+# Content-Length: 271
+# Date: Fri, 09 Oct 2026 13:37:02 GMT
+# Connection: close
+
+# {
+#   "@odata.context": "$metadata#Orders",
+#   "@odata.count": 3,
+#   "value": [
+#     {
+#       "DESCRIPTION": "german",
+#       "ID": "58e583a7-62b1-402d-9670-b859d51823f5"
+#     },
+#     {
+#       "DESCRIPTION": "german",
+#       "ID": "69fa6019-2ab9-45a6-9337-f00194eba57f"
+#     },
+#     {
+#       "DESCRIPTION": "german",
+#       "ID": "924fd749-cfd3-4800-91f0-ba2e3dde977f"
+#     }
+#   ]
+# }
+GET {{service}}/Orders?$count=true&$filter=DESCRIPTION eq 'german'
+Accept: application/json
+Accept-Language: de
+
+### Read all Orders with inline count, filtering by DESCRIPTION with $top.
+# It doesn't return the proper count because this time the count is fetched from the db, but from the non localized table.
+
+# [sql] - BEGIN
+# [sql] - SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER ( ORDER BY ID ASC) as "$$RN$$" FROM (SELECT "$O".ID,"$O".DESCRIPTION FROM localized_ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ? ORDER BY "$O".ID ASC LIMIT 2) as "$O") as "$O" [ 'german' ]
+# [sql] - WITH "$O" as (SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER ( ORDER BY ID ASC) as "$$RN$$" FROM (SELECT "$O".ID,"$O".DESCRIPTION FROM localized_ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ? ORDER BY "$O".ID ASC LIMIT 2) as "$O") as "$O") SELECT _path_ as "_path_",'{}' as "_blobs_",'{}' as "_expands_",(SELECT ID as "ID",DESCRIPTION as "DESCRIPTION" FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" FROM "$O" ORDER BY "_path_" ASC
+# [sql] - SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER () as "$$RN$$" FROM (SELECT count(*) as "COUNT" FROM (SELECT 1 as "1" FROM ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ?) as __select__ LIMIT 1) as __select__) as __select__ [ 'german' ]
+# [sql] - WITH "$O" as (SELECT *,'$[' || lpad("$$RN$$",6,'0') as _path_ FROM (SELECT *,ROW_NUMBER() OVER () as "$$RN$$" FROM (SELECT count(*) as "COUNT" FROM (SELECT 1 as "1" FROM ab_CatalogService_Orders as "$O" WHERE "$O".DESCRIPTION = ?) as __select__ LIMIT 1) as __select__) as __select__) SELECT _path_ as "_path_",'{}' as "_blobs_",'{}' as "_expands_",(SELECT "COUNT" as "count" FROM JSON_TABLE('{}', '$' COLUMNS("'$$FaKeDuMmYCoLuMn$$'" FOR ORDINALITY)) FOR JSON ('format'='no', 'omitnull'='no', 'arraywrap'='no') RETURNS NVARCHAR(2147483647)) as "_json_" FROM "$O" ORDER BY "_path_" ASC
+# [sql] - COMMIT
+
+# HTTP/1.1 200 OK
+# X-Powered-By: Express
+# X-Correlation-ID: 56b9a0d1-5f77-43fb-b0be-7c55cebe0df2
+# OData-Version: 4.0
+# Content-Type: application/json; charset=utf-8
+# Content-Length: 202
+# Date: Fri, 09 Oct 2026 13:37:18 GMT
+# Connection: close
+
+# {
+#   "@odata.context": "$metadata#Orders",
+#   "@odata.count": 0,
+#   "value": [
+#     {
+#       "DESCRIPTION": "german",
+#       "ID": "58e583a7-62b1-402d-9670-b859d51823f5"
+#     },
+#     {
+#       "DESCRIPTION": "german",
+#       "ID": "69fa6019-2ab9-45a6-9337-f00194eba57f"
+#     }
+#   ]
+# }
+GET {{service}}/Orders?$count=true&$filter=DESCRIPTION eq 'german'&$top=2
+Accept: application/json
+Accept-Language: de
